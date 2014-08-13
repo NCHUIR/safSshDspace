@@ -7,3 +7,26 @@ safSshDspace
 
  * Python3
  * [paramiko](https://github.com/paramiko/paramiko) module (provides ssh functionality),use `pip3 install paramiko` to install this module
+
+## Usage
+
+ * create a json file named `setting.json` which have auth information just like below:
+
+    ```
+    {
+        "hostname":"",
+        "username":"",
+        "password":"",
+
+        "SAFTmpDir":"",
+
+        "requireRoot":"",
+        "dspaceBin":"",
+        "mapfileDir":"",
+        "DspaceIdentity":""
+    }
+    ```
+ * Use the following command to upload and import SAF:
+    ```
+    python3 safSshDspace.py <SAF_path> <handle> [<json_dir>]
+    ```
