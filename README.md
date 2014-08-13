@@ -26,7 +26,9 @@ safSshDspace
         "DspaceIdentity":""
     }
     ```
+
  * Use the following command to upload and import SAF:
+
     ```
     python3 safSshDspace.py <SAF_path> <handle> [<json_dir>]
     ```
