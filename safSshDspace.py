@@ -103,6 +103,10 @@ class safSshDspace:
         }
 
         self.setting.update(setting)
+        self.client = None
+        self.sftp = None
+
+    def connect(self):
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.connect(
@@ -194,7 +198,8 @@ class safSshDspace:
         return removed
 
     def toFS(self,safCollPath): # scp to file system
-        client = self.client
+        if not self.sftp:
+            raise Exception("Not connected yet!")
         sftp = self.sftp
 
         SAFColl = os.path.split(os.path.abspath(safCollPath))[1]
@@ -202,9 +207,6 @@ class safSshDspace:
         
         SAFTmpDir = self.setting['SAFTmpDir']
         des_path = os.path.join(SAFTmpDir,SAFColl)
-
-        sftp = client.open_sftp()
-        self.sftp = sftp
 
         if SAFColl in sftp.listdir(SAFTmpDir):
             #return des_path
@@ -217,6 +219,8 @@ class safSshDspace:
         return des_path
 
     def mapFilePath(self,SAFColl):
+        if not self.sftp:
+            raise Exception("Not connected yet!")
         sftp = self.sftp
         mapFilePath = os.path.join(self.setting['mapfileDir'],SAFColl)
 
@@ -261,6 +265,9 @@ class safSshDspace:
     # https://wiki.duraspace.org/display/DSDOC4x/Importing+and+Exporting+Items+via+Simple+Archive+Format
     # ===============================
     def intoDspace(self,src_path,collHandle,mapFilePath): # use command to import
+        if not self.client:
+            raise Exception("Not connected yet!")
+
         setting = self.setting
         action_flags = setting['action_flags']
         flags = setting['flags']
@@ -284,7 +291,10 @@ class safSshDspace:
         return __class__.execute(self.client,cmd,rootPW,setting['commandTimeout'])
 
     def grabMapFile(self,mapFilePath,safCollPath): # get mapfile
+        if not self.sftp:
+            raise Exception("Not connected yet!")
         sftp = self.sftp
+
         localMapFilePath = os.path.join(safCollPath,self.setting['localMapFileName'])
         print("download mapfile from [%s] to [%s]..." % (mapFilePath,localMapFilePath))
         sftp.get(mapFilePath,localMapFilePath)
@@ -312,8 +322,11 @@ class safSshDspace:
         return mapJsonPath
 
     def cleanup(self,remotepath,mapFilePath,localMapFilePath): # delete mapfile and saf_tmp on server
-        setting = self.setting
+        if not self.sftp:
+            raise Exception("Not connected yet!")
         sftp = self.sftp
+
+        setting = self.setting
 
         print("Clean up ...")
 
@@ -330,6 +343,7 @@ class safSshDspace:
     def importSAF(self,dirpath,collHandle,localMapJsonDir = False):
         try:
             self.SAFCollList = self.genSAFList(dirpath)
+            self.connect()
 
             for safCollPath in self.SAFCollList:
                 SAFColl = os.path.split(os.path.abspath(safCollPath))[1]
@@ -366,7 +380,7 @@ if __name__ == "__main__":
         print("Usage:\n\tpython3 "+sys.argv[0]+" <SAF_path> <handle> [<json_dir>]")
         sys.exit(1)
 
-    main = safSshDspace(loadJsonConfig('setting.json'))
+    main = safSshDspace(loadJsonConfig(os.path.join(os.path.dirname(os.path.realpath(__file__)),'setting.json')))
 
     if len(sys.argv) == 4:
         localMapJsonDir = sys.argv[3]
