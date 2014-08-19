@@ -135,12 +135,14 @@ class safSshDspace:
             return []
 
         # is collection level
-        isCollLevel = True
+        isCollLevel = False
 
         SAFCollList = []
 
         for item in os.listdir(dirpath):
-            isCollLevel = isCollLevel and self.isSAFItem(os.path.join(dirpath,item))
+            isCollLevel =  self.isSAFItem(os.path.join(dirpath,item))
+            if not isCollLevel:
+                break;
 
         if isCollLevel:
             SAFCollList.append(dirpath)
