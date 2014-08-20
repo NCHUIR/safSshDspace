@@ -153,7 +153,16 @@ class safSshDspace:
             return SAFCollList
 
     @staticmethod
-    def put_r(sftp,localpath,remotepath,verbose = False): # recursively upload a full directory
+    def verbose(level,content = ""):
+        if level is 0:
+            return
+        elif level is 1:
+            print('.',end='',flush=True)
+        else:
+            print(content)
+
+    @staticmethod
+    def put_r(sftp,localpath,remotepath,verboseLevel = 1): # recursively upload a full directory
         result = []
         localpath = os.path.abspath(localpath)
         localpathLen = len(os.path.split(localpath)[0])
@@ -161,8 +170,7 @@ class safSshDspace:
             r_path = os.path.join(remotepath,walker[0][localpathLen+1:])
             try:
                 sftp.mkdir(r_path)
-                if verbose:
-                    print("sftp.mkdir:",r_path)
+                __class__.verbose(verboseLevel,"sftp.mkdir: [%s]" % r_path)
                 result.append(r_path)
             except:
                 pass
@@ -170,13 +178,14 @@ class safSshDspace:
                 lf_path = os.path.join(walker[0],f)
                 rf_path = os.path.join(r_path,f)
                 sftp.put(lf_path,rf_path)
-                if verbose:
-                    print("sftp.put",[lf_path,rf_path])
+                __class__.verbose(verboseLevel,"sftp.put [%s] => [%s]" % (lf_path,rf_path))
                 result.append([lf_path,rf_path])
+        if verboseLevel is 1:
+            print("")
         return result
 
     @staticmethod
-    def remove_r(sftp,remotepath,verbose = False): # recursively remove a full directory
+    def remove_r(sftp,remotepath,verboseLevel = 0): # recursively remove a full directory
         removed = []
         if S_ISDIR(sftp.stat(remotepath).st_mode):
             for f in sftp.listdir_attr(remotepath):
@@ -186,17 +195,16 @@ class safSshDspace:
                 else:
                     sftp.remove(fpath)
                     removed.append(fpath)
-                    if verbose:
-                        print("sftp.remove:",fpath)
+                    __class__.verbose(verboseLevel,"sftp.remove: [%s]" % fpath)
             sftp.rmdir(remotepath)
             removed.append(remotepath)
-            if verbose:
-                print("sftp.rmdir:",remotepath)
+            __class__.verbose(verboseLevel,"sftp.rmdir: [%s]" % remotepath)
         else:
             sftp.remove(remotepath)
             removed.append(remotepath)
-            if verbose:
-                print("sftp.remove:",remotepath)
+            __class__.verbose(verboseLevel,"sftp.remove: [%s]" % remotepath)
+        if verboseLevel is 1:
+            print("")
         return removed
 
     def toFS(self,safCollPath): # scp to file system
@@ -342,36 +350,38 @@ class safSshDspace:
             print("Remove local mapfile: [%s]..." % localMapFilePath)
             os.remove(localMapFilePath)
 
+    def importOneSaf(self,safCollPath,collHandle,localMapJsonDir = False):
+        SAFColl = os.path.split(os.path.abspath(safCollPath))[1]
+
+        print("Start to Process...")
+
+        remotepath = self.toFS(safCollPath)
+        mapFilePath = self.mapFilePath(SAFColl)
+        print("into Dspace...")
+        cmdResult = self.intoDspace(remotepath,collHandle,mapFilePath)
+        
+        if cmdResult['retval']:
+            raise Exception("Dspace cli reports:\n" + "".join(cmdResult['err']))
+        
+        localMapFilePath = self.grabMapFile(mapFilePath,safCollPath)
+        
+        if localMapJsonDir:
+            mapJsonPath = self.mapFile2mapJson(localMapFilePath,localMapJsonDir,SAFColl,collHandle)
+            print("mapJson is stored here:",mapJsonPath)
+
+        self.cleanup(remotepath,mapFilePath,localMapFilePath)
+
     def importSAF(self,dirpath,collHandle,localMapJsonDir = False):
         try:
             self.SAFCollList = self.genSAFList(dirpath)
             self.connect()
 
             for safCollPath in self.SAFCollList:
-                SAFColl = os.path.split(os.path.abspath(safCollPath))[1]
-
-                print("\n========================================================")
-                print("  Processing [%s] ..." % SAFColl)
-                print("========================================================")
-
-                remotepath = self.toFS(safCollPath)
-                mapFilePath = self.mapFilePath(SAFColl)
-                cmdResult = self.intoDspace(remotepath,collHandle,mapFilePath)
-                
-                if cmdResult['retval']:
-                    raise Exception("Dspace cli reports:\n" + "".join(cmdResult['err']))
-                
-                localMapFilePath = self.grabMapFile(mapFilePath,safCollPath)
-                
-                if localMapJsonDir:
-                    mapJsonPath = self.mapFile2mapJson(localMapFilePath,localMapJsonDir,SAFColl,collHandle)
-                    print("mapJson is stored here:",mapJsonPath)
-
-                self.cleanup(remotepath,mapFilePath,localMapFilePath)
-
+                self.importOneSaf(safCollPath,collHandle,localMapJsonDir)
 
         except Exception as e:
-            print("Error:",e)
+            print("Error:\n\t",e)
+            return e
         else:
             print("Done without error.")
         
