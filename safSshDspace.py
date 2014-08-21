@@ -157,7 +157,7 @@ class safSshDspace:
         if level is 0:
             return
         elif level is 1:
-            print('.',end='',flush=True)
+            sys.stdout.write('.')
         else:
             print(content)
 
