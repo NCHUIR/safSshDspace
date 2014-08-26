@@ -108,6 +108,7 @@ class safSshDspace:
 
     def connect(self):
         client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.load_system_host_keys()
         client.connect(
             hostname = self.setting['hostname'],
