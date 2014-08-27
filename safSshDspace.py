@@ -100,6 +100,7 @@ class safSshDspace:
                 'remote':False,
             },
             'keepUploadedSAF':False,
+            'slashConvertion':True,
         }
 
         self.setting.update(setting)
@@ -153,6 +154,15 @@ class safSshDspace:
                 SAFCollList += self.genSAFList(os.path.join(dirpath,item))
             return SAFCollList
 
+    # ===================================
+    # Recursive SFTP static functions
+    # verbose (helper funcion)
+    # put_r
+    # remove_r
+    # 
+    # Warning: These funcitons will convert all '\' to '/'!
+    # ===================================
+
     @staticmethod
     def verbose(level,content = ""):
         if level is 0:
@@ -168,7 +178,7 @@ class safSshDspace:
         localpath = os.path.abspath(localpath)
         localpathLen = len(os.path.split(localpath)[0])
         for walker in os.walk(localpath):
-            r_path = os.path.join(remotepath,walker[0][localpathLen+1:])
+            r_path = os.path.join(remotepath,walker[0][localpathLen+1:]).replace('\\','/')
             try:
                 sftp.mkdir(r_path)
                 __class__.verbose(verboseLevel,"sftp.mkdir: [%s]" % r_path)
@@ -177,7 +187,7 @@ class safSshDspace:
                 pass
             for f in walker[2]:
                 lf_path = os.path.join(walker[0],f)
-                rf_path = os.path.join(r_path,f)
+                rf_path = os.path.join(r_path,f).replace('\\','/')
                 sftp.put(lf_path,rf_path)
                 __class__.verbose(verboseLevel,"sftp.put [%s] => [%s]" % (lf_path,rf_path))
                 result.append([lf_path,rf_path])
@@ -190,7 +200,7 @@ class safSshDspace:
         removed = []
         if S_ISDIR(sftp.stat(remotepath).st_mode):
             for f in sftp.listdir_attr(remotepath):
-                fpath = os.path.join(remotepath,f.filename)
+                fpath = os.path.join(remotepath,f.filename).replace('\\','/')
                 if S_ISDIR(f.st_mode):
                     removed += __class__.remove_r(sftp,fpath)
                 else:
@@ -219,8 +229,10 @@ class safSshDspace:
         SAFTmpDir = self.setting['SAFTmpDir']
         des_path = os.path.join(SAFTmpDir,SAFColl)
 
+        if self.setting['slashConvertion']:
+            des_path = des_path.replace('\\','/')
+
         if SAFColl in sftp.listdir(SAFTmpDir):
-            #return des_path
             print("SAFColl: [%s] exists! Removing [%s]..." % (SAFColl,des_path))
             __class__.remove_r(sftp,des_path)
 
@@ -234,6 +246,9 @@ class safSshDspace:
             raise Exception("Not connected yet!")
         sftp = self.sftp
         mapFilePath = os.path.join(self.setting['mapfileDir'],SAFColl)
+
+        if self.setting['slashConvertion']:
+            mapFilePath = mapFilePath.replace('\\','/')
 
         try:
             sftp.mkdir(self.setting['mapfileDir'])
