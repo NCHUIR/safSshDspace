@@ -120,6 +120,7 @@ class safSshDspace:
         sftp = client.open_sftp()
         self.sftp = sftp
 
+
     def isSAFItem(self,dirpath):
         if not os.path.isdir(dirpath):
             return False
@@ -391,7 +392,7 @@ class safSshDspace:
         try:
             self.SAFCollList = self.genSAFList(dirpath)
             self.connect()
-
+            
             for safCollPath in self.SAFCollList:
                 self.importOneSaf(safCollPath,collHandle,localMapJsonDir)
 
@@ -400,15 +401,13 @@ class safSshDspace:
             return e
         else:
             print("Done without error.")
-        
         self.client.close()
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage:\n\tpython3 "+sys.argv[0]+" <SAF_path> <handle> [<json_dir>]")
         sys.exit(1)
-
-    main = safSshDspace(loadJsonConfig(os.path.join(os.path.dirname(os.path.realpath(__file__)),'setting.json')))
+    main = safSshDspace(loadJsonConfig(os.path.join(os.path.dirname(os.path.realpath(__file__)),'setting140.120.80.8.json')))
 
     if len(sys.argv) == 4:
         localMapJsonDir = sys.argv[3]
