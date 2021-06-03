@@ -6,6 +6,8 @@ from stat import S_ISDIR,S_ISREG
 # testing ...
 # =========================
 
+env_dict={"LC_ALL":"zh_TW.UTF-8","LANG":"zh_TW.UTF-8"}
+
 def loadJsonConfig(jsonPath):
     jsonFile=open(jsonPath)
     data = json.load(jsonFile)
@@ -15,7 +17,8 @@ def loadJsonConfig(jsonPath):
 def execute(client, command, sudoPW=False):
     if sudoPW:
         command = "sudo -S -p '' %s" % command
-    stdin, stdout, stderr = client.exec_command(command)
+    
+    stdin, stdout, stderr = client.exec_command(command,environment=env_dict)
     if sudoPW:
         stdin.write(sudoPW + "\n")
         stdin.flush()
@@ -270,7 +273,7 @@ class safSshDspace:
         if sudoPW:
             command = "sudo -S -p '' %s" % command
         print("command: [%s]" % command)
-        stdin, stdout, stderr = client.exec_command(command)
+        stdin, stdout, stderr = client.exec_command(command,environment=env_dict)
         if sudoPW:
             stdin.write(sudoPW + "\n")
             stdin.flush()
@@ -310,6 +313,9 @@ class safSshDspace:
         cmd += flags['collection'] + ' ' + collHandle + ' '
         cmd += flags['mapfile'] + ' "' + mapFilePath + '" '
         cmd += flags['eperson'] + ' ' + setting['DspaceIdentity']
+
+        rels = __class__.execute(self.client,"locale",False,setting['commandTimeout'])
+        print("locale: ", rels['out'])
 
         if setting['requireRoot']:
             rootPW = setting['password']
